@@ -1,2 +1,2 @@
 # SnakeGame
-Snake Game in C
+Snake Game for CS 355-01 Project
