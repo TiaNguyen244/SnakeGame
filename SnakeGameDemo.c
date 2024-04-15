@@ -34,10 +34,51 @@ void drawSnakePitBorder(int width, int height) {
 
 //Move the snake
 // {Code here}
+void moveSnake(Snake *snake, int width, int height) {
+    // Move the body segments of the snake
+    for (int i = snake->length - 1; i > 0; i--) {
+        snake->body[i].x = snake->body[i - 1].x;
+        snake->body[i].y = snake->body[i - 1].y;
+    }
 
-//CHange direction of the snake
+    // Move the head of the snake based on current direction
+    snake->body[0].x += snake->dx;
+    snake->body[0].y += snake->dy;
+}
+
+
+//Change direction of the snake
 // {Code here}
-
+void changeSnakeDirection(Snake *snake, int key) {
+    switch (key) {
+        case KEY_UP:
+            if (snake->dy != 1) { // prevent moving in opposite direction
+                snake->dx = 0;
+                snake->dy = -1;
+            }
+            break;
+        case KEY_DOWN:
+            if (snake->dy != -1) {
+                snake->dx = 0;
+                snake->dy = 1;
+            }
+            break;
+        case KEY_LEFT:
+            if (snake->dx != 1) {
+                snake->dx = -1;
+                snake->dy = 0;
+            }
+            break;
+        case KEY_RIGHT:
+            if (snake->dx != -1) {
+                snake->dx = 1;
+                snake->dy = 0;
+            }
+            break;
+        default:
+            break;
+    }
+}
 
 
 int main() {
@@ -55,6 +96,11 @@ int main() {
     // Initialize the snake
     Snake snake;
     snake.length = SNAKE_LENGTH;
+
+    //Set initial position of head to face the right
+    snake.dx = 1;
+    snake.dy = 0;
+    
     for (int i = 0; i < SNAKE_LENGTH; i++) {
         snake.body[i].x = width / 2 + i;
         snake.body[i].y = height / 2;
@@ -62,10 +108,29 @@ int main() {
     }
 
     //Main game loop
+    while (1) { // Infinite loop until game over condition
 
+        int key = getch(); // Get user input (arrow key or 'q' for quit)
+        if (key == 'q') // If 'q' is pressed, exit the game
+            break;
+        changeDirection(&snake, key); // Update direction based on key
+        
+        moveSnake(&snake, width, height); // Move the snake
 
-    refresh(); // Refresh the screen
-    getch(); // Wait for a key press to exit
+        // Check if the snake hits the border
+        if (snake.body[0].x == 0 || snake.body[0].x == width - 1 || snake.body[0].y == 0 || snake.body[0].y == height - 1)
+            break; // Exit the game if the snake hits the border
+       
+        // Draw the snake
+        clear(); // Clear the screen
+        drawSnakePitBorder(width, height);
+        for (int i = 0; i < snake.length; i++) {
+            mvaddch(snake.body[i].y, snake.body[i].x, 'O');
+        }
+        refresh(); // Refresh the screen
+        usleep(100000); // Delay to control the speed of the game
+    }
+
     endwin(); // End ncurses
     return 0;
 }
