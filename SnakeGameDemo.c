@@ -10,7 +10,7 @@ typedef struct {
 typedef struct {
     Point body[SNAKE_LENGTH];
     int length;
-    int dx,dy; //Direction of movement
+    int dx, dy; // Direction of movement
 } Snake;
 
 void drawSnakePitBorder(int width, int height) {
@@ -32,27 +32,21 @@ void drawSnakePitBorder(int width, int height) {
     }
 }
 
-//Move the snake
-// {Code here}
-void moveSnake(Snake *snake, int width, int height) {
+void moveSnake(Snake *snake) {
     // Move the body segments of the snake
     for (int i = snake->length - 1; i > 0; i--) {
-        snake->body[i].x = snake->body[i - 1].x;
-        snake->body[i].y = snake->body[i - 1].y;
+        snake->body[i] = snake->body[i - 1];
     }
-
     // Move the head of the snake based on current direction
     snake->body[0].x += snake->dx;
     snake->body[0].y += snake->dy;
 }
 
-
 //Change direction of the snake
-// {Code here}
 void changeSnakeDirection(Snake *snake, int key) {
     switch (key) {
         case KEY_UP:
-            if (snake->dy != 1) { // prevent moving in opposite direction
+            if (snake->dy != 1) {   // prevent moving in opposite direction
                 snake->dx = 0;
                 snake->dy = -1;
             }
@@ -75,18 +69,16 @@ void changeSnakeDirection(Snake *snake, int key) {
                 snake->dy = 0;
             }
             break;
-        default:
-            break;
     }
 }
-
 
 int main() {
     initscr(); // Initialize ncurses
     cbreak(); // Line buffering disabled
     noecho(); // Don't echo characters to the screen
     curs_set(0); // Hide the cursor
-    keypad(stdscr,TRUE);
+    keypad(stdscr, TRUE); // Enable special keys to be captured
+    nodelay(stdscr, TRUE); // Do not block on getch()
 
     int width, height;
     getmaxyx(stdscr, height, width); // Get terminal dimensions
@@ -96,41 +88,37 @@ int main() {
     // Initialize the snake
     Snake snake;
     snake.length = SNAKE_LENGTH;
-
     //Set initial position of head to face the right
     snake.dx = 1;
     snake.dy = 0;
     
     for (int i = 0; i < SNAKE_LENGTH; i++) {
-        snake.body[i].x = width / 2 + i;
+        snake.body[i].x = (width / 2) - i;
         snake.body[i].y = height / 2;
-        mvaddch(snake.body[i].y, snake.body[i].x, 'O'); // Draw snake body
     }
 
-    //Main game loop
-    while (1) { // Infinite loop until game over condition
+    int key;
+    while (1) {
+        key = getch();    // Get user input (arrow key or 'q' for quit)
+        if (key != ERR) { // Process input if there is any
+            if (key == 'q')
+                break;
+            changeSnakeDirection(&snake, key); // Update direction based on key
+        }
 
-        int key = getch(); // Get user input (arrow key or 'q' for quit)
-        if (key == 'q') // If 'q' is pressed, exit the game
-            break;
-        changeDirection(&snake, key); // Update direction based on key
-        
-        moveSnake(&snake, width, height); // Move the snake
-
-        // Check if the snake hits the border
+        moveSnake(&snake);
         if (snake.body[0].x == 0 || snake.body[0].x == width - 1 || snake.body[0].y == 0 || snake.body[0].y == height - 1)
-            break; // Exit the game if the snake hits the border
-       
-        // Draw the snake
-        clear(); // Clear the screen
+            break; // Exit if the snake hits the border
+
+        clear();
         drawSnakePitBorder(width, height);
         for (int i = 0; i < snake.length; i++) {
             mvaddch(snake.body[i].y, snake.body[i].x, 'O');
         }
-        refresh(); // Refresh the screen
-        usleep(100000); // Delay to control the speed of the game
+        refresh();
+        usleep(220000); // Control speed of the snake
     }
 
-    endwin(); // End ncurses
+    endwin();   // End ncurses
     return 0;
 }
