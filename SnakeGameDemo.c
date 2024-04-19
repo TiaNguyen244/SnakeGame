@@ -1,7 +1,8 @@
 #include <ncurses.h>
 #include <unistd.h>
+#include <stdlib.h> 
 
-#define SNAKE_LENGTH 5
+#define SNAKE_LENGTH 5   //Initial length of the snake
 
 typedef struct {
     int x, y;
@@ -13,6 +14,15 @@ typedef struct {
     int dx, dy; // Direction of movement
 } Snake;
 
+
+void endGame() {
+    clear();
+    refresh();
+    endwin();
+    exit(0);
+}
+
+//Function that draws the border on the screen
 void drawSnakePitBorder(int width, int height) {
     // Draw top border
     for (int i = 0; i < width; i++) {
@@ -37,40 +47,44 @@ void moveSnake(Snake *snake) {
     for (int i = snake->length - 1; i > 0; i--) {
         snake->body[i] = snake->body[i - 1];
     }
-    // Move the head of the snake based on current direction
+    // Move the head of the snake based on the current direction
     snake->body[0].x += snake->dx;
     snake->body[0].y += snake->dy;
 }
 
-//Change direction of the snake
-void changeSnakeDirection(Snake *snake, int key) {
+void changeSnakeDirection(Snake *snake, int key, int width, int height) {
     switch (key) {
         case KEY_UP:
-            if (snake->dy != 1) {   // prevent moving in opposite direction
-                snake->dx = 0;
-                snake->dy = -1;
+            if (snake->dy == 1 || snake->body[0].y == 1 || snake->body[0].y == height - 2) {   // prevent moving in opposite direction or out of bounds
+                endGame();
             }
+            snake->dx = 0;
+            snake->dy = -1;
             break;
         case KEY_DOWN:
-            if (snake->dy != -1) {
-                snake->dx = 0;
-                snake->dy = 1;
+            if (snake->dy == -1 || snake->body[0].y == 1 || snake->body[0].y == height - 2) {
+                endGame();
             }
+            snake->dx = 0;
+            snake->dy = 1;
             break;
         case KEY_LEFT:
-            if (snake->dx != 1) {
-                snake->dx = -1;
-                snake->dy = 0;
+            if (snake->dx == 1 || snake->body[0].x == 1 || snake->body[0].x == width - 2) {
+                endGame();
             }
+            snake->dx = -1;
+            snake->dy = 0;
             break;
         case KEY_RIGHT:
-            if (snake->dx != -1) {
-                snake->dx = 1;
-                snake->dy = 0;
+            if (snake->dx == -1 || snake->body[0].x == 1 || snake->body[0].x == width - 2) {
+                endGame();
             }
+            snake->dx = 1;
+            snake->dy = 0;
             break;
     }
 }
+
 
 int main() {
     initscr(); // Initialize ncurses
@@ -101,14 +115,17 @@ int main() {
     while (1) {
         key = getch();    // Get user input (arrow key or 'q' for quit)
         if (key != ERR) { // Process input if there is any
-            if (key == 'q')
-                break;
-            changeSnakeDirection(&snake, key); // Update direction based on key
+            if (key == 'q') {
+                endGame(); // Quit the program
+            }
+            changeSnakeDirection(&snake, key, width, height); // Update direction based on key
         }
 
         moveSnake(&snake);
-        if (snake.body[0].x == 0 || snake.body[0].x == width - 1 || snake.body[0].y == 0 || snake.body[0].y == height - 1)
-            break; // Exit if the snake hits the border
+
+        if (snake.body[0].x == 0 || snake.body[0].x == width - 1 || snake.body[0].y == 0 || snake.body[0].y == height - 1) {
+            endGame(); // Exit if the snake hits the border
+        }
 
         clear();
         drawSnakePitBorder(width, height);
