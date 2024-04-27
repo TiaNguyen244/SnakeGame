@@ -1,19 +1,26 @@
 #include <ncurses.h>
 #include <unistd.h>
-#include <stdlib.h> 
+#include <stdlib.h>
+#include <time.h>
 
-#define SNAKE_LENGTH 5   //Initial length of the snake
+#define SNAKE_LENGTH 5;
+#define TROPHY_EXPIRATION_INTERVAL 10 // in seconds
 
 typedef struct {
     int x, y;
 } Point;
 
 typedef struct {
-    Point body[SNAKE_LENGTH];
+    Point *body; // Dynamic allocation for snake body
     int length;
-    int dx, dy; // Direction of movement
+    int dx, dy;
 } Snake;
 
+typedef struct {
+    Point position;
+    int value;
+    int active;
+} Trophy;
 
 void endGame() {
     clear();
@@ -22,7 +29,7 @@ void endGame() {
     exit(0);
 }
 
-//Function that draws the border on the screen
+// Function that draws the border on the screen
 void drawSnakePitBorder(int width, int height) {
     // Draw top border
     for (int i = 0; i < width; i++) {
@@ -85,6 +92,20 @@ void changeSnakeDirection(Snake *snake, int key, int width, int height) {
     }
 }
 
+void drawTrophy(Trophy *trophy) {
+    mvprintw(trophy->position.y, trophy->position.x, "%d", trophy->value);
+}
+
+void generateTrophy(Trophy *trophy, int width, int height) {
+    trophy->position.x = rand() % (width - 2) + 1;
+    trophy->position.y = rand() % (height - 2) + 1;
+    trophy->value = rand() % 9 + 1; // Random value between 1 and 9
+    trophy->active = 1;
+}
+
+void expireTrophy(Trophy *trophy) {
+    trophy->active = 0;
+}
 
 int main() {
     initscr(); // Initialize ncurses
@@ -102,14 +123,21 @@ int main() {
     // Initialize the snake
     Snake snake;
     snake.length = SNAKE_LENGTH;
-    //Set initial position of head to face the right
+
+    snake.body = malloc(snake.length * sizeof(Point)); // Allocate memory for snake body
+    // Set initial position of head to face the right
     snake.dx = 1;
     snake.dy = 0;
-    
-    for (int i = 0; i < SNAKE_LENGTH; i++) {
+
+    for (int i = 0; i < snake.length; i++) {
         snake.body[i].x = (width / 2) - i;
         snake.body[i].y = height / 2;
     }
+
+    // Initialize trophy
+    Trophy trophy;
+    int trophyActive = 0;
+    time_t trophyExpirationTime;
 
     int key;
     while (1) {
@@ -127,15 +155,49 @@ int main() {
             endGame(); // Exit if the snake hits the border
         }
 
-        clear();
+        // Trophy logic
+        if (!trophyActive) {
+            generateTrophy(&trophy, width, height);
+            trophyActive = 1;
+            trophyExpirationTime = time(NULL) + (rand() % TROPHY_EXPIRATION_INTERVAL) + 1;
+        }
+
+        if (time(NULL) >= trophyExpirationTime) {
+            expireTrophy(&trophy);
+            trophyActive = 0;
+        }
+
+        // Check if the snake eats the trophy
+        if (trophyActive && snake.body[0].x == trophy.position.x && snake.body[0].y == trophy.position.y) {
+            // Increase snake length
+            snake.length += trophy.value;
+            snake.body = realloc(snake.body, snake.length * sizeof(Point)); // Resize body array
+            // Set new segment positions
+            for (int i = snake.length - trophy.value; i < snake.length; i++) {
+                snake.body[i].x = snake.body[i - 1].x;
+                snake.body[i].y = snake.body[i - 1].y;
+            }
+            trophyActive = 0; // Trophy is consumed
+        }
+
+        // Draw trophy if active
+        clear(); // Clear the screen before drawing
         drawSnakePitBorder(width, height);
+        if (trophyActive) {
+            drawTrophy(&trophy);
+        }
+
+        // Draw snake
         for (int i = 0; i < snake.length; i++) {
             mvaddch(snake.body[i].y, snake.body[i].x, 'O');
         }
-        refresh();
+
+        refresh(); // Refresh the screen after drawing
         usleep(220000); // Control speed of the snake
     }
 
+    // Free dynamically allocated memory
+    free(snake.body);
+
     endwin();   // End ncurses
-    return 0;
 }
