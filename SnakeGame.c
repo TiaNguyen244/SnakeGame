@@ -48,15 +48,10 @@ void winGame() {
     exit(0);
 }
 
-// Function to toggle the pause state
-void togglePause() {
-    paused = !paused;
-}
-
 // Function to handle input for pause/resume
-void handleInput(int key) {
+void handlePauseInput(int key) {
     if (key == 'p') {
-        togglePause();
+        paused = !paused;
     }
 }
 
@@ -196,7 +191,7 @@ int main() {
     int key, speedDelay = 220000;
     while (1) {
         key = getch();    // Get user input (arrow key or 'q' for quit)
-        handleInput(key); // Handle pause/resume input
+        handlePauseInput(key); // Handle pause/resume input
         
         if (!paused){
             if (key != ERR) { // Process input if there is any
