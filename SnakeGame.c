@@ -6,6 +6,10 @@
 #define SNAKE_LENGTH 5
 #define TROPHY_EXPIRATION_INTERVAL 10 // in seconds
 #define TARGET_LENGTH (2 * (width + height) - 8) / 2 // Half the perimeter of the border
+
+// Define a global variable to track the pause state
+int paused = 0;
+
 typedef struct {
     int x, y;
 } Point;
@@ -42,6 +46,18 @@ void winGame() {
     sleep(3);
     endwin();
     exit(0);
+}
+
+// Function to toggle the pause state
+void togglePause() {
+    paused = !paused;
+}
+
+// Function to handle input for pause/resume
+void handleInput(int key) {
+    if (key == 'p') {
+        togglePause();
+    }
 }
 
 // Function that draws the border on the screen
@@ -180,48 +196,58 @@ int main() {
     int key, speedDelay = 220000;
     while (1) {
         key = getch();    // Get user input (arrow key or 'q' for quit)
-        if (key != ERR) { // Process input if there is any
-            if (key == 'q') {
-                endGame(); // Quit the program
+        handleInput(key); // Handle pause/resume input
+        
+        if (!paused){
+            if (key != ERR) { // Process input if there is any
+                if (key == 'q') {
+                    endGame(); // Quit the program
+                }
+                changeSnakeDirection(&snake, key, width, height); // Update direction based on key
             }
-            changeSnakeDirection(&snake, key, width, height); // Update direction based on key
-        }
 
-        moveSnake(&snake);
+            moveSnake(&snake);
 
-        if (snake.body[0].x == 0 || snake.body[0].x == width - 1 || snake.body[0].y == 0 || snake.body[0].y == height - 1) {
-            endGame(); // Exit if the snake hits the border
-        }
-
-        // Trophy logic
-        if (!trophyActive) {
-            generateTrophy(&trophy, width, height);
-            trophyActive = 1;
-            trophyExpirationTime = time(NULL) + (rand() % TROPHY_EXPIRATION_INTERVAL) + 1;
-        }
-
-        if (time(NULL) >= trophyExpirationTime) {
-            expireTrophy(&trophy);
-            trophyActive = 0;
-        }
-
-        // Check if the snake eats the trophy
-        if (trophyActive && snake.body[0].x == trophy.position.x && snake.body[0].y == trophy.position.y) {
-            // Increase snake length
-            snake.length += trophy.value;
-            snake.body = realloc(snake.body, snake.length * sizeof(Point)); // Resize body array
-            // Set new segment positions
-            for (int i = snake.length - trophy.value; i < snake.length; i++) {
-                snake.body[i].x = snake.body[i - 1].x;
-                snake.body[i].y = snake.body[i - 1].y;
+            if (snake.body[0].x == 0 || snake.body[0].x == width - 1 || snake.body[0].y == 0 || snake.body[0].y == height - 1) {
+                endGame(); // Exit if the snake hits the border
             }
-            trophyActive = 0; // Trophy is consumed
+
+            // Trophy logic
+            if (!trophyActive) {
+                generateTrophy(&trophy, width, height);
+                trophyActive = 1;
+                trophyExpirationTime = time(NULL) + (rand() % TROPHY_EXPIRATION_INTERVAL) + 1;
+            }
+
+            if (time(NULL) >= trophyExpirationTime) {
+                expireTrophy(&trophy);
+                trophyActive = 0;
+            }
+
+            // Check if the snake eats the trophy
+            if (trophyActive && snake.body[0].x == trophy.position.x && snake.body[0].y == trophy.position.y) {
+                // Increase snake length
+                snake.length += trophy.value;
+                snake.body = realloc(snake.body, snake.length * sizeof(Point)); // Resize body array
+                // Set new segment positions
+                for (int i = snake.length - trophy.value; i < snake.length; i++) {
+                    snake.body[i].x = snake.body[i - 1].x;
+                    snake.body[i].y = snake.body[i - 1].y;
+                }
+                trophyActive = 0; // Trophy is consumed
                     // Check if the player has won
-        if (snake.length >= TARGET_LENGTH) {
-            winGame(); // Player has won
+                if (snake.length >= TARGET_LENGTH) {
+                    winGame(); // Player has won
+                }
+            }
+        } else {
+            clear(); // Clear the screen
+            mvprintw(height / 2, (width - 18) / 2, "Game Paused - Press 'p' to resume");
+            refresh(); // Refresh the screen
+            usleep(speedDelay); // Pause the game until resumed
+            continue; // Don't display the game screen while paused
         }
-        }
-
+            
         // Draw trophy if active
         clear(); // Clear the screen before drawing
         drawSnakePitBorder(width, height);
